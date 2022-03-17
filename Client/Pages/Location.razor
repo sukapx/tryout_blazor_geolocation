@@ -1,0 +1,54 @@
+@page "/location"
+@using System.Text.Json
+@implements IDisposable
+@inject IJSRuntime JS
+
+<h3>Location</h3>
+<button @onclick="WatchLocation">WatchLocation</button>
+<div>
+  <p>Latitude: @position.Latitude</p>
+  <p>Longitude: @position.Longitude</p>
+  <p>Altitude: @position.Altitude</p>
+  <p>Heading: @position.Heading</p>
+  <p>Accuracy: @position.Accuracy</p>
+</div>
+
+@code{
+  public class Position {
+    public float Latitude { get; set; }
+    public float Longitude { get; set; }
+    public float Altitude { get; set; }
+    public float? Heading { get; set; }
+    public float? Accuracy { get; set; }
+  }
+
+  private DotNetObjectReference<Location>? objRef;
+  protected Position position = new Position();
+
+  protected override void OnInitialized()
+  {
+    objRef = DotNetObjectReference.Create(this);
+  }
+
+  public async Task WatchLocation() {
+    await JS.InvokeVoidAsync("setNetRef", objRef);
+    await JS.InvokeVoidAsync("UpdatePosition");
+  }
+
+  [JSInvokable]
+  public void SetPosition(string posJson)
+  {
+    Position? pos = JsonSerializer.Deserialize<Position>(posJson);
+    if(pos is null) return;
+
+    Console.WriteLine($"Position {pos.Latitude} {pos.Longitude} {pos.Altitude}");
+    position = pos;
+    StateHasChanged();
+  }
+
+
+  public void Dispose()
+  {
+    objRef?.Dispose();
+  }
+}
